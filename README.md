@@ -11,6 +11,7 @@
 | `fy-code-animation` | 文案 → 语义分镜 → 选画风 → 镜头/转场/字体/声音 → Remotion/Canvas 落地 → 返修；已接好上面的风格库 | Akillll-DuoHe/fy-code-animation |
 | `hyperframes` / `hyperframes-cli` / `hyperframes-registry` | HTML 写动画渲染成视频；约 450 个现成转场、字幕、图表块 | HeyGen HyperFrames |
 | `remotion-best-practices` | Remotion（React 视频）全套：创建、字幕、地图、交互等 | Remotion |
+| `video-shotcraft` | 电影感产品宣传片：真实页面截图 + 2.5D 运镜 + 节奏卡点 + 音效；152 张镜头配方卡、209 个样式、Ink Press 成片模板（Remotion） | kingselyjoe/video-shotcraft-dsh |
 | `media-use` | 配乐、音效、配音、抠像、调色 | HyperFrames |
 | `video-use` | 对话式剪辑：转写、剪辑、调色、烧字幕（含 manim） | video-use |
 | `seedance2` | 即梦 Seedance 图生视频、运镜、短剧提示词 | seedance2 |

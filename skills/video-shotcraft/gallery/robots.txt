@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://kingselyjoe.github.io/video-shotcraft-dsh/sitemap.xml

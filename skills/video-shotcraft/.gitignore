@@ -1,0 +1,20 @@
+node_modules/
+.dsh-package.json
+out/qa/
+template/out/
+# 发帖用社交封面图等本地素材，不进 skill 安装包
+assets/images/
+# 动态样片不随 skill 包分发（poster 小图仍在 git）
+gallery/media/*.mp4
+# 本地教程视频
+/video-shotcraft教程.mp4
+.DS_Store
+.synapse/
+__pycache__/
+AGENT.md
+PRODUCT.md
+/shots/
+
+# motion-lab 本地研究/渲染农场（动效已转换为正式镜头卡，此目录不进库）
+/motion-lab/
+.playwright-mcp/

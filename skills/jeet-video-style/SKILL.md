@@ -23,6 +23,7 @@ description: Jeet 的视频风格总入口。做任何视频（Card2Dream 品牌
 | 中文/英文文案做成连贯的代码动画（不是逐句贴卡 PPT） | `fy-code-animation` | 语义分镜 → 选画风 → 镜头/转场/字体/声音 → 落地 → 返修；已指向上面的风格库 |
 | HTML 写动画并渲染成片、要现成转场/字幕/图表组件 | `hyperframes` + `hyperframes-cli` + `hyperframes-registry` | 约 450 个现成块，先查 registry 再手写 |
 | 已有 React/Remotion 工程，或要地图/字幕/数据动画 | `remotion-best-practices` | 路由到各 remotion-* 子技能 |
+| 网页/App 做成电影感宣传片（真实截图、2.5D 运镜、卡点音效），或要单个镜头动效（发牌飞入、聚光推近、orbit 环绕等） | `video-shotcraft` | 152 张镜头卡，画廊 `gallery/library.html`；Remotion 实现。模板是 1920×1080 横屏，竖屏要按本文件规格改画幅；字体配色仍按 STYLE.md |
 | 配乐、音效、配音、抠像、调色 | `media-use` | HeyGen 或本地免费工具 |
 | 剪已有素材：转写、剪口播、调色、烧字幕 | `video-use` | 对话式剪辑 |
 | 真人感/写实镜头、内容向 AI 短剧、图生视频 | `seedance2` | 即梦 Seedance；**画面里的文字不要交给它生成** |

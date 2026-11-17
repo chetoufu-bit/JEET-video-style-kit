@@ -11,9 +11,11 @@
 | `skills/video-use` | video-use | 见该目录 `LICENSE` |
 | `skills/seedance2` | seedance2 | 见该目录 `LICENSE` |
 | `skills/generative-media` | generative-media | 见该目录 `LICENSE` |
+| `skills/video-shotcraft` | https://github.com/kingselyjoe/video-shotcraft-dsh （上游提交 `fce06e5`，2026-08-19） | Apache-2.0，见该目录 `LICENSE`、`NOTICE`；音频与镜头来源见 `assets/audio/ATTRIBUTION.md`、`references/shots/ATTRIBUTION.md` |
 | `skills/jeet-video-style` | 自己整理 | — |
 
 本仓库内的改动：
 - `fy-code-animation/adapters/style-library.config.json`：`root` 指向同级 `../code-animation-prompts/assets/library`。
 - `code-animation-prompts` 未改动；上游仓库 `docs/images` 的宣传图未收录，`docs/STYLES.md` 照搬。
 - 上游仓库根目录的 `install_skill.py` 等脚本换成了 `scripts/install.sh`。
+- `video-shotcraft` 原样收录（只去掉了 `.git`、`.github`）；它原本为 DeepSeek Harness 打包，`dsh/`、`install-dsh.*`、`scripts/dsh_manager.py` 在 Claude Code / Codex 下用不到，留着不影响。
