@@ -18,6 +18,8 @@
 
 341 种风格的可点击目录：[docs/STYLES.md](docs/STYLES.md)。
 
+**可视化挑选台** `picker/`：画风（带参考图和提示词原文）、15 种镜头运动、16 种转场都有循环动画演示，点 ＋ 加入清单后一键复制发给 Claude。本地打开要起个服务：`cd picker && python3 -m http.server`，再访问 http://localhost:8000。
+
 ## 安装
 
 ```sh

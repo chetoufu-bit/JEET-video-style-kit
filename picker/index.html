@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>视频风格与镜头挑选台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* 布局：顶部筛选条 + 三个标签页（风格 / 镜头 / 转场）+ 右侧固定「我的选择」清单，像剪辑台的素材箱 */
+:root{
+  --bg:#EEF1F6; --panel:#FFFFFF; --ink:#0B1A4A; --muted:#5B6683; --line:#D5DBE7;
+  --accent:#1F6BFF; --accent-soft:#E3ECFF; --mint:#2FB89F; --warn:#C7811B;
+  --stage-a:#0B1A4A; --stage-b:#3CCFB4;
+  --font-body:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1220; --panel:#171C2E; --ink:#E8ECF6; --muted:#9AA4BF; --line:#2A3250;
+  --accent:#5C93FF; --accent-soft:#1D2A4D; --mint:#3CCFB4; --warn:#E3A341; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0E1220; --panel:#171C2E; --ink:#E8ECF6; --muted:#9AA4BF; --line:#2A3250;
+  --accent:#5C93FF; --accent-soft:#1D2A4D; --mint:#3CCFB4; --warn:#E3A341; color-scheme:dark;}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font:14px/1.55 var(--font-body)}
+button,input,textarea,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.app{display:grid;grid-template-columns:1fr 320px;height:100%}
+main{overflow:auto;padding:20px 24px 60px}
+aside{border-left:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;min-height:0}
+header{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:baseline;margin-bottom:14px}
+h1{font-size:22px;font-weight:700;text-wrap:balance}
+.sub{color:var(--muted);font-size:13px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.tab{background:none;border:0;border-bottom:3px solid transparent;padding:8px 14px;cursor:pointer;color:var(--muted);font-weight:500}
+.tab[aria-selected="true"]{color:var(--ink);border-color:var(--accent)}
+.tab .n{font-family:var(--font-mono);font-size:12px;margin-left:6px;color:var(--muted)}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+.search{flex:1 1 240px;min-width:180px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.chip{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:4px 11px;cursor:pointer;font-size:13px;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip .c{font-family:var(--font-mono);font-size:11px;opacity:.7;margin-left:4px}
+.count{color:var(--muted);font-size:13px;margin-left:auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;position:relative;cursor:pointer;transition:border-color .15s}
+.card:hover{border-color:var(--muted)}
+.card.sel{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.thumb{aspect-ratio:16/10;background:var(--accent-soft);display:grid;place-items:center;overflow:hidden}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.noimg{padding:14px;color:var(--muted);font-size:12.5px;text-align:center;line-height:1.5}
+.noimg b{display:block;font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;margin-bottom:4px;color:var(--warn)}
+.meta{padding:9px 11px 11px;display:flex;flex-direction:column;gap:3px}
+.idrow{display:flex;gap:8px;align-items:baseline}
+.id{font-family:var(--font-mono);font-weight:600;font-size:12px;color:var(--accent)}
+.nm{font-weight:700;font-size:14px;line-height:1.3}
+.ds{color:var(--muted);font-size:12.5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pick{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:var(--panel);cursor:pointer;display:grid;place-items:center;font-size:16px;line-height:1}
+.card.sel .pick{background:var(--accent);color:#fff;border-color:var(--accent)}
+.more{display:block;margin:18px auto 0;padding:8px 18px;border:1px solid var(--line);background:var(--panel);border-radius:8px;cursor:pointer}
+/* 镜头 / 转场卡 */
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.mcard{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;display:grid;grid-template-columns:118px 1fr;gap:12px;position:relative}
+.mcard.sel{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.mcard h3{font-size:15px;font-weight:700;padding-right:36px}
+.mcard h3 .en{font-family:var(--font-mono);font-weight:500;font-size:11.5px;color:var(--muted);margin-left:6px}
+.mcard dl{display:grid;gap:4px;margin-top:6px;font-size:12.5px}
+.mcard dt{font-weight:700;color:var(--muted);font-size:11px;letter-spacing:.04em}
+.mcard dd{margin:0 0 2px}
+.param{font-family:var(--font-mono);font-size:11.5px;background:var(--accent-soft);border-radius:4px;padding:1px 5px}
+.stage{width:118px;aspect-ratio:9/16;border-radius:8px;overflow:hidden;position:relative;background:#DCE6FA;perspective:420px;isolation:isolate}
+.stage .layer{position:absolute;inset:0;will-change:transform}
+.bggrid{inset:-60%!important;background-image:linear-gradient(#b9c8ea 1px,transparent 1px),linear-gradient(90deg,#b9c8ea 1px,transparent 1px);background-size:14px 14px;background-position:center}
+.box{position:absolute;border-radius:8px;display:grid;place-items:center;font-family:var(--font-mono);font-weight:600;color:#fff}
+.cap{position:absolute;left:8px;right:8px;bottom:12px;background:rgba(11,26,74,.85);color:#fff;font-size:9.5px;border-radius:4px;padding:3px 5px;text-align:center}
+.scene{position:absolute;inset:0;display:grid;place-items:center;font:700 34px var(--font-mono);color:#fff}
+.sa{background:var(--stage-a)} .sb{background:var(--stage-b);color:#0B1A4A}
+.legend{font-size:12px;color:var(--muted);margin:-4px 0 12px}
+/* 右侧清单 */
+.asideHead{padding:16px 16px 10px;border-bottom:1px solid var(--line)}
+.asideHead h2{font-size:16px}
+.asideBody{flex:1;overflow:auto;padding:12px 16px;display:flex;flex-direction:column;gap:14px}
+.group h4{font-size:12px;color:var(--muted);letter-spacing:.05em;margin-bottom:6px;display:flex;justify-content:space-between}
+.item{display:flex;gap:8px;align-items:center;padding:6px 8px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px;font-size:13px}
+.item .id{min-width:30px}
+.item .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item select{font-size:12px;border:1px solid var(--line);border-radius:5px;background:var(--panel);padding:1px 2px}
+.x{border:0;background:none;cursor:pointer;color:var(--muted);font-size:16px;padding:0 2px}
+.empty{color:var(--muted);font-size:12.5px}
+textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--bg);resize:vertical}
+.asideFoot{padding:12px 16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.primary{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:10px;font-weight:700;cursor:pointer}
+.ghost{background:none;border:1px solid var(--line);border-radius:8px;padding:7px;cursor:pointer;color:var(--muted)}
+.toast{font-size:12px;color:var(--mint);min-height:16px}
+pre.out{white-space:pre-wrap;font-family:var(--font-mono);font-size:11.5px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px;max-height:160px;overflow:auto}
+/* 详情弹窗 */
+.modal{position:fixed;inset:0;background:rgba(8,12,28,.6);display:none;align-items:center;justify-content:center;padding:20px;z-index:10}
+.modal.open{display:flex}
+.sheet{background:var(--panel);border-radius:12px;max-width:980px;width:100%;max-height:100%;overflow:auto;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}
+.sheet .big{background:var(--accent-soft);display:grid;place-items:center;min-height:240px}
+.sheet .big img{width:100%;display:block}
+.sheet .info{padding:18px 20px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.sheet h2{font-size:20px}
+.tags{display:flex;flex-wrap:wrap;gap:5px}
+.tag{font-size:12px;background:var(--accent-soft);border-radius:4px;padding:1px 7px}
+.prompt{white-space:pre-wrap;font-family:var(--font-mono);font-size:12px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;max-height:300px;overflow:auto}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.close{position:absolute;top:10px;right:14px}
+@media (max-width:860px){.app{grid-template-columns:1fr}aside{border-left:0;border-top:1px solid var(--line)}.sheet{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){.stage .layer,.scene{transition:none}}
+</style>
+</head>
+<body>
+<div class="app">
+<main>
+  <header>
+    <h1>视频风格与镜头挑选台</h1>
+    <span class="sub">341 种画风 · 15 种镜头运动 · 16 种转场。点 ＋ 加入右边清单，复制后发给 Claude 开工。</span>
+  </header>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tab-styles" aria-selected="true" data-tab="styles">画风<span class="n" id="n-styles">341</span></button>
+    <button class="tab" role="tab" id="tab-camera" aria-selected="false" data-tab="camera">镜头运动<span class="n">15</span></button>
+    <button class="tab" role="tab" id="tab-trans" aria-selected="false" data-tab="trans">转场<span class="n">16</span></button>
+  </div>
+
+  <section id="p-styles">
+    <div class="bar">
+      <input class="search" id="q" type="search" placeholder="搜编号、名字、适合的内容，比如：粒子、水墨、B3、数据、搞笑">
+      <button class="chip" id="onlyImg" aria-pressed="false">只看有参考图</button>
+      <button class="chip" id="onlySel" aria-pressed="false">只看已选</button>
+    </div>
+    <div class="bar" id="series"></div>
+    <div class="bar"><span class="count" id="count"></span></div>
+    <div class="grid" id="grid"></div>
+    <button class="more" id="more" hidden>再显示 60 个</button>
+  </section>
+
+  <section id="p-camera" hidden>
+    <p class="legend">每张卡左边是 9:16 的小画面，循环演示这个镜头怎么动。深蓝块是主体，网格是背景，前面的条是前景。参数是起步值。</p>
+    <div class="mgrid" id="camGrid"></div>
+  </section>
+
+  <section id="p-trans" hidden>
+    <p class="legend">深蓝是上一镜（A），薄荷绿是下一镜（B）。先想清楚两镜是什么关系，再挑接法：同一个东西接着用 → 对象接力；从整体进细节 → 圆形揭示或缩放穿透；没有共同点 → 硬切或短叠化。</p>
+    <div class="mgrid" id="trGrid"></div>
+  </section>
+</main>
+
+<aside>
+  <div class="asideHead"><h2>我的选择</h2><span class="sub">自动记在这个浏览器里</span></div>
+  <div class="asideBody">
+    <div class="group"><h4><span>画风</span><span id="cS">0</span></h4><div id="lS"></div></div>
+    <div class="group"><h4><span>镜头运动</span><span id="cC">0</span></h4><div id="lC"></div></div>
+    <div class="group"><h4><span>转场</span><span id="cT">0</span></h4><div id="lT"></div></div>
+    <div class="group"><h4><span>补充说明（选填）</span></h4>
+      <textarea id="notes" placeholder="比如：15 秒 DP 福利动效，文案是……；开头用推近，第二镜接圆形揭示"></textarea></div>
+    <div class="group"><h4><span>将发送的内容</span></h4><pre class="out" id="out"></pre></div>
+  </div>
+  <div class="asideFoot">
+    <button class="primary" id="copy">复制清单，发给 Claude</button>
+    <button class="ghost" id="clear">清空选择</button>
+    <div class="toast" id="toast" role="status"></div>
+  </div>
+</aside>
+</div>
+
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+  <div class="sheet" style="position:relative">
+    <div class="big" id="mImg"></div>
+    <div class="info">
+      <div class="idrow"><span class="id" id="mId"></span><span class="sub" id="mSeries"></span></div>
+      <h2 id="mTitle"></h2>
+      <p id="mDesc"></p>
+      <p class="sub" id="mFit"></p>
+      <div class="tags" id="mTags"></div>
+      <div class="row">
+        <button class="primary" id="mPick"></button>
+        <button class="ghost" id="mCopy">复制提示词原文</button>
+      </div>
+      <div class="prompt" id="mPrompt">载入提示词…</div>
+    </div>
+    <button class="ghost close" id="mClose" aria-label="关闭">关闭</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
+const eio=t=>{t=clamp(t);return t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2};
+const eout=t=>1-Math.pow(1-clamp(t),3);
+const win=(t,a,b)=>clamp((t-a)/(b-a));
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- 状态 ---------- */
+const KEY='jeet-style-picker-v1';
+let state={styles:{},camera:[],trans:[],notes:''};
+try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s)state=Object.assign(state,s)}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}renderList()}
+
+/* ---------- 镜头数据（来自 fy-code-animation/recipes/camera-moves.md） ---------- */
+const CAM=[
+ {id:'push',n:'推近',en:'push-in',use:'证据变重要、进入细节',avoid:'观众正在读长句时',p:'zoom 1→1.04–1.08，3–6 s；强推另留 0.5–1 s 停稳'},
+ {id:'pull',n:'拉远',en:'pull-back',use:'揭示规模、关系、所处环境',avoid:'把核心证据拉成小点',p:'zoom 1.4→1，1–2 s；字幕不跟着缩'},
+ {id:'pan',n:'横摇 / 横移',en:'pan / truck',use:'并列比较、跟随、从一个对象交给下一个',avoid:'密集比较时（锁住镜头更好读）',p:'位移 0.1–0.4 画宽，0.7–1.8 s'},
+ {id:'crane',n:'升降 / 俯仰',en:'crane / tilt',use:'揭示层级、位置、成长',avoid:'只因为文案里有「上升」就机械套用',p:'位移 0.1–0.3 画高'},
+ {id:'evidence',n:'证据缩放',en:'evidence zoom',use:'聚焦 App 按钮、金额、图表细节',avoid:'推近一块没有信息的空白',p:'先让目标字号够大，再定倍率'},
+ {id:'dolly',n:'滑动变焦',en:'dolly zoom',use:'主体不变、空间被压缩或张开的不安感',avoid:'纯文字画面',p:'主体平面固定，距离与视角反向变化'},
+ {id:'parallax',n:'多层视差',en:'parallax',use:'建立纵深、让照片和截图活起来',avoid:'接地的物体和地面分开跑',p:'背景 0.2–0.4，主体 1，前景 1.1–1.4'},
+ {id:'orbit',n:'环绕',en:'orbit',use:'展示体积、多个面',avoid:'二维截图（背面没内容），改用平移',p:'0.15–0.5 rad/s'},
+ {id:'tilt',n:'卡片倾斜 / 翻转',en:'tilt card',use:'表里、材质、正反面',avoid:'把每个框都做成 3D',p:'tilt 5–15°；透视 900–1800 px'},
+ {id:'macro',n:'宏观 ↔ 微观',en:'macro ↔ micro',use:'尺度关系、结构讲解',avoid:'尺度变化没有含义时',p:'每层倍率 2–4；注意素材放大会糊'},
+ {id:'follow',n:'跟随',en:'follow',use:'角色、光标、指向字幕',avoid:'观众在读长字幕时还在追',p:'前视 0.1–0.2 s，限速'},
+ {id:'rack',n:'焦点转移',en:'rack focus',use:'注意力从前景转到后景',avoid:'数据读数先被糊掉',p:'blur 0–14 px，0.4–0.9 s'},
+ {id:'shake',n:'手持 / 震动',en:'handheld / shake',use:'接触、冲击、紧张感',avoid:'像素风、精密 UI、阅读中',p:'1080p 下 2–8 px，0.2–0.5 s'},
+ {id:'whip',n:'甩镜',en:'whip pan',use:'快速换空间、制造冲击',avoid:'需要观众读新信息的那一刻',p:'0.16–0.35 s，blur 8–20 px'},
+ {id:'multi',n:'多站点长镜头',en:'multi-stop',use:'同一系统里依次讲几个位置',avoid:'几个位置之间没有空间关系',p:'中途不刹车，关键站点停稳'}
+];
+/* ---------- 转场数据（来自 fy-code-animation/recipes/transitions.md） ---------- */
+const TR=[
+ {id:'match',n:'对象接力 / 匹配剪辑',en:'match cut',use:'同一个东西进入下一步、前后有因果',avoid:'两者只是颜色像，没有关系',p:'锚点误差 0–8 px，预备 0.15–0.4 s'},
+ {id:'wipe',n:'方向擦除',en:'directional wipe',use:'同一空间看另一部分、章节推进',avoid:'擦过正在读的字',p:'软边 0.03–0.12 画长，0.3–0.7 s'},
+ {id:'iris',n:'圆形揭示',en:'iris',use:'从上一镜的焦点打开下一镜',avoid:'圆心放在和内容无关的位置',p:'0.35–0.8 s，终点半径到最远角'},
+ {id:'occluder',n:'前景遮挡切',en:'occluder cut',use:'门、人、纸页从镜头前经过时换场',avoid:'遮挡物没真正盖住整屏',p:'遮挡物宽度 ≥ 1 画宽'},
+ {id:'container',n:'容器扩展',en:'container expand',use:'小卡片变成下一镜的舞台、输入框变结果页',avoid:'把框里的字一起拉扁',p:'收 0.18 s → 换内容 → 展开 0.37 s'},
+ {id:'axis',n:'共享轴推移',en:'shared axis',use:'同一关系的前后步骤（第 1 步 → 第 2 步）',avoid:'两镜方向相反',p:'0.3–0.6 s'},
+ {id:'morph',n:'形变',en:'morph',use:'一个形状真的变成另一个',avoid:'复杂汉字逐笔形变',p:'64–256 个轮廓点，0.5–1.2 s'},
+ {id:'flip',n:'翻页 / 翻面',en:'page flip',use:'正反面、前后对比、翻到下一页',avoid:'正面还没读完就翻',p:'透视 900–1800 px，0.45–0.9 s'},
+ {id:'particle',n:'粒子重组',en:'particles',use:'分散变聚合、复杂变有序',avoid:'只是把矩形碎成小块',p:'收拢 0.12–0.25 s → 爆开 → 聚合'},
+ {id:'zoom',n:'缩放穿透',en:'zoom through',use:'进入对象内部、从概念到证据',avoid:'字幕也被放大几十倍',p:'倍率 2–4，0.4–0.8 s，对数插值'},
+ {id:'flash',n:'闪白 / 过暗',en:'fade through',use:'曝光变化、能量释放、时间跳跃',avoid:'每拍都闪（伤眼）',p:'0.4–1.2 s，明确设白或设黑'},
+ {id:'cross',n:'叠化',en:'cross dissolve',use:'回忆、时间流逝、状态消融',avoid:'叠在一起会被误读成同一时间',p:'0.3–0.8 s'},
+ {id:'gridm',n:'网格 / 格栅揭示',en:'grid mask',use:'机械感、科技感、像素风换场',avoid:'信息很密的画面（减格数）',p:'起步 12×7 格，0.35–0.75 s'},
+ {id:'cut',n:'节奏硬切',en:'hard cut',use:'对比、笑点、观点转折',avoid:'需要观众理解连续动作时',p:'切在动作峰值或静止后的反差'},
+ {id:'freeze',n:'定格后切',en:'freeze frame',use:'梗视频的停顿、「然后……」',avoid:'定格太久没有信息',p:'定格 0.4–1 s，可加闪白'},
+ {id:'whipt',n:'甩镜转场',en:'whip pan',use:'快节奏换空间',avoid:'整屏长期甩动',p:'0.16–0.35 s，blur 8–20 px'}
+];
+
+/* ---------- 演示动画 ---------- */
+// 镜头：world 是 300%×300% 的世界，中间是主体。cam(p) 返回相机状态
+function camScene(st){
+  st.innerHTML=`<div class="layer bggrid"></div>
+  <div class="layer world">
+    <div class="box" style="left:22%;top:30%;width:56%;height:40%;background:#0B1A4A">₦</div>
+    <div class="box btn" style="left:30%;top:58%;width:40%;height:7%;background:#1F6BFF;font-size:8px;border-radius:3px">Confirm</div>
+    <div class="box" style="left:-78%;top:34%;width:56%;height:32%;background:#3D8BFF">1</div>
+    <div class="box" style="left:122%;top:34%;width:56%;height:32%;background:#3CCFB4;color:#0B1A4A">3</div>
+    <div class="box" style="left:28%;top:-60%;width:44%;height:30%;background:#FFC93C;color:#0B1A4A">↑</div>
+    <div class="box dot" style="left:10%;top:76%;width:12%;height:7%;background:#FF7AA2;border-radius:50%"></div>
+  </div>
+  <div class="layer fg"><div class="box" style="left:-6%;top:84%;width:30%;height:20%;background:rgba(11,26,74,.35)"></div><div class="box" style="left:80%;top:-4%;width:28%;height:14%;background:rgba(11,26,74,.25)"></div></div>
+  <div class="cap">字幕在屏幕层，不跟镜头动</div>`;
+  return {bg:st.querySelector('.bggrid'),w:st.querySelector('.world'),fg:st.querySelector('.fg'),dot:st.querySelector('.dot')};
+}
+const W=118,H=210;
+const camFn={
+ push:p=>({s:1+.45*eio(win(p,.1,.75))}),
+ pull:p=>({s:1.9-.9*eio(win(p,.1,.75))}),
+ pan:p=>({x:W*1.0*eio(win(p,.1,.7))}),
+ crane:p=>({y:-H*.55*eio(win(p,.1,.7))}),
+ evidence:p=>{const k=eio(win(p,.1,.7));return{s:1+1.6*k,x:0,y:H*.115*k}},
+ dolly:p=>{const k=eio(win(p,.05,.85));return{bgS:1+1.1*k,s:1}},
+ parallax:p=>{const k=Math.sin(p*Math.PI*2);return{x:W*.18*k,par:true}},
+ orbit:p=>({ry:-38+76*eio(Math.sin(p*Math.PI))}),
+ tilt:p=>{const k=Math.sin(p*Math.PI*2);return{ry:14*k,rx:8*Math.cos(p*Math.PI*2)}},
+ macro:p=>{const k=eio(win(p,.1,.75));return{s:Math.exp(Math.log(5)*k),y:H*.0*k}},
+ follow:p=>{const dx=Math.sin(p*Math.PI*2)*W*.9;const lag=Math.sin((p-.04)*Math.PI*2)*W*.9;return{x:lag*.85,dot:dx}},
+ rack:p=>{const k=eio(win(p,.2,.6))-eio(win(p,.75,.95));return{blurW:8*k,blurF:8*(1-k)}},
+ shake:p=>{const a=win(p,.35,.42)*(1-win(p,.42,.7));const n=Math.sin(p*190)*Math.cos(p*133);return{x:7*a*n,y:6*a*Math.sin(p*157),r:1.5*a*n}},
+ whip:p=>{const k=eio(win(p,.4,.52));const v=win(p,.36,.46)*(1-win(p,.46,.56));return{x:W*1*k,blur:14*v}},
+ multi:p=>{const xs=[-W,0,W];const seg=[[0,.12],[.22,.4],[.5,.68],[.78,1]];let x;
+   if(p<.12)x=xs[0];else if(p<.22)x=xs[0]+(xs[1]-xs[0])*eio(win(p,.12,.32))*1;else if(p<.5)x=xs[0]+(xs[1]-xs[0])*eio(win(p,.12,.32));else if(p<.78)x=xs[1]+(xs[2]-xs[1])*eio(win(p,.5,.7));else x=xs[2]+(xs[0]-xs[2])*eio(win(p,.85,1));return{x}}
+};
+function applyCam(el,c){
+  const s=c.s||1,x=c.x||0,y=c.y||0;
+  el.w.style.transform=`rotateX(${c.rx||0}deg) rotateY(${c.ry||0}deg) scale(${s}) translate(${-x}px,${-y}px) rotate(${c.r||0}deg)`;
+  el.w.style.filter=(c.blur?`blur(${c.blur}px)`:'')+(c.blurW?`blur(${c.blurW}px)`:'');
+  const bk=c.par?.3:1;
+  el.bg.style.transform=`scale(${(c.bgS||1)*s}) translate(${-x*bk}px,${-y*bk}px)`;
+  el.bg.style.filter=c.blur?`blur(${c.blur}px)`:'';
+  const fk=c.par?1.4:1.15;
+  el.fg.style.transform=`translate(${-x*fk}px,${-y*fk}px) scale(${s})`;
+  el.fg.style.filter=c.blurF?`blur(${c.blurF}px)`:'';
+  el.dot.style.transform=c.dot!=null?`translateX(${c.dot+W*.4}px)`:'';
+}
+// 转场：A、B 两个场景
+function trScene(st,id){
+  st.style.perspective='420px';
+  let extra='';
+  if(id==='gridm'){extra='<div class="layer gridm">'+Array.from({length:48},(_,i)=>`<i style="position:absolute;left:${(i%6)*16.67}%;top:${Math.floor(i/6)*12.5}%;width:16.8%;height:12.6%;background:var(--stage-b);opacity:0"></i>`).join('')+'</div>'}
+  if(id==='particle'){extra='<div class="layer parts">'+Array.from({length:40},()=>'<i style="position:absolute;width:7px;height:7px;border-radius:50%;left:50%;top:50%"></i>').join('')+'</div>'}
+  st.innerHTML=`<div class="scene sb">B</div><div class="scene sa">A</div>${extra}
+   <div class="layer occ" style="background:#1F2A44;transform:translateX(-120%)"></div>
+   <div class="layer flash" style="background:#fff;opacity:0"></div>
+   <div class="box obj" style="left:34%;top:42%;width:32%;height:18%;background:#FFC93C;color:#0B1A4A;font-size:10px;opacity:0">₦</div>`;
+  return {a:st.querySelector('.sa'),b:st.querySelector('.sb'),occ:st.querySelector('.occ'),fl:st.querySelector('.flash'),obj:st.querySelector('.obj'),
+    objBase:st.querySelector('.obj').getAttribute('style'),cells:[...st.querySelectorAll('.gridm i')],parts:[...st.querySelectorAll('.parts i')]};
+}
+const rnd=(i,k)=>{const x=Math.sin(i*127.1+k*311.7)*43758.5453;return x-Math.floor(x)};
+const trFn={
+ match:(p,e)=>{const k=eio(win(p,.15,.5));e.obj.style.opacity=1;
+   e.obj.style.transform=`translate(${-30*k+30*eio(win(p,.5,.8))}px,${-50*(1-k)+50*eio(win(p,.5,.8))*0}px) scale(${1+.3*k})`;
+   e.a.style.opacity=p<.5?1:0;e.b.style.opacity=1},
+ wipe:(p,e)=>{const k=eio(win(p,.25,.7))*110;e.a.style.clipPath=`inset(0 0 0 ${k}%)`},
+ iris:(p,e)=>{const k=eio(win(p,.25,.75));e.a.style.opacity=1;e.b.style.zIndex=2;e.b.style.clipPath=`circle(${k*120}% at 50% 45%)`},
+ occluder:(p,e)=>{const k=win(p,.2,.75);e.occ.style.transform=`translateX(${-120+240*eio(k)}%)`;e.a.style.opacity=k<.5?1:0},
+ container:(p,e)=>{const s=1-.25*eout(win(p,.2,.35));const g=eio(win(p,.4,.75));e.a.style.transform=`scale(${s})`;e.a.style.opacity=p<.4?1:0;
+   e.b.style.zIndex=2;e.b.style.clipPath=`inset(${38*(1-g)}% ${30*(1-g)}% round ${10*(1-g)}px)`;e.b.style.opacity=p<.4?0:1},
+ axis:(p,e)=>{const k=eio(win(p,.25,.7));e.a.style.transform=`translateX(${-100*k}%)`;e.b.style.transform=`translateX(${100-100*k}%)`},
+ morph:(p,e)=>{const k=eio(win(p,.2,.7));e.obj.style.opacity=1;e.obj.style.borderRadius=`${4+46*k}%`;e.obj.style.transform=`scale(${1+3.2*eio(win(p,.55,.85))})`;
+   e.obj.style.background=k>.5?'var(--stage-b)':'#FFC93C';e.a.style.opacity=p<.75?1:0},
+ flip:(p,e)=>{const k=eio(win(p,.25,.75));const a=180*k;e.a.style.transform=`rotateY(${-a}deg)`;e.a.style.backfaceVisibility='hidden';
+   e.b.style.transform=`rotateY(${180-a}deg)`;e.b.style.backfaceVisibility='hidden'},
+ particle:(p,e)=>{e.a.style.opacity=p<.22?1:0;e.b.style.opacity=eio(win(p,.7,.85));
+   e.parts.forEach((d,i)=>{const ang=rnd(i,1)*6.28,r=40+rnd(i,2)*50;const out=eout(win(p,.22,.45)),inn=eio(win(p,.45,.8));
+     const ex=Math.cos(ang)*r*out,ey=Math.sin(ang)*r*out*1.6;const tx=(rnd(i,3)-.5)*W*.9,ty=(rnd(i,4)-.5)*H*.9;
+     d.style.background=inn>.5?'#3CCFB4':'#fff';d.style.opacity=p<.2||p>.88?0:1;
+     d.style.transform=`translate(${ex+(tx-ex)*inn-3}px,${ey+(ty-ey)*inn-3}px)`})},
+ zoom:(p,e)=>{const k=eio(win(p,.2,.6));e.a.style.transform=`scale(${Math.exp(Math.log(4)*k)})`;e.a.style.opacity=1-win(p,.45,.6);
+   e.b.style.transform=`scale(${.35+.65*eio(win(p,.4,.75))})`},
+ flash:(p,e)=>{const up=win(p,.3,.45),dn=win(p,.45,.7);e.fl.style.opacity=up*(1-dn);e.a.style.opacity=p<.45?1:0},
+ cross:(p,e)=>{e.a.style.opacity=1-eio(win(p,.25,.7))},
+ gridm:(p,e)=>{e.cells.forEach((c,i)=>{const col=i%6,row=Math.floor(i/6);const d=(col+row)/12;c.style.opacity=win(p,.25+d*.35,.32+d*.35)})},
+ cut:(p,e)=>{e.a.style.opacity=(p%0.5)<.25?1:0},
+ freeze:(p,e)=>{const t=p<.45?p:.45;e.a.style.transform=`translateY(${Math.sin(t*20)*10}px) rotate(${Math.sin(t*14)*4}deg)`;
+   e.a.style.filter=p>=.45&&p<.7?'grayscale(1) contrast(1.3)':'';e.fl.style.opacity=p>=.45&&p<.5?.8:0;e.a.style.opacity=p<.7?1:0},
+ whipt:(p,e)=>{const k=eio(win(p,.35,.55));const v=win(p,.33,.45)*(1-win(p,.45,.57));
+   e.a.style.transform=`translateX(${-110*k}%)`;e.b.style.transform=`translateX(${110-110*k}%)`;e.a.style.filter=e.b.style.filter=`blur(${14*v}px)`}
+};
+function resetTr(e){[e.a,e.b].forEach(x=>{x.style.cssText=''});e.a.style.zIndex=1;e.b.style.zIndex=0;
+  e.obj.setAttribute('style',e.objBase)}
+
+const players=[];
+function mountMotion(list,grid,kind){
+  grid.innerHTML='';
+  list.forEach(m=>{
+    const c=document.createElement('article');c.className='mcard';c.dataset.id=m.id;
+    c.innerHTML=`<div class="stage" aria-hidden="true"></div><div><h3>${m.n}<span class="en">${m.en}</span></h3>
+     <dl><dt>适合</dt><dd>${m.use}</dd><dt>别用在</dt><dd>${m.avoid}</dd><dt>参数起点</dt><dd><span class="param">${m.p}</span></dd></dl></div>
+     <button class="pick" aria-label="选中${m.n}">＋</button>`;
+    grid.appendChild(c);
+    const st=c.querySelector('.stage');
+    const el=kind==='cam'?camScene(st):trScene(st,m.id);
+    players.push({kind,id:m.id,el,card:c,vis:false,dur:kind==='cam'?3.6:2.8});
+    c.querySelector('.pick').onclick=()=>toggleMotion(kind,m.id);
+  });
+}
+mountMotion(CAM,$('#camGrid'),'cam');
+mountMotion(TR,$('#trGrid'),'tr');
+const io=new IntersectionObserver(es=>es.forEach(en=>{const pl=players.find(p=>p.card===en.target);if(pl)pl.vis=en.isIntersecting}));
+players.forEach(p=>io.observe(p.card));
+function drawPlayer(pl,p){
+  if(pl.kind==='cam'){applyCam(pl.el,camFn[pl.id](p))}
+  else{resetTr(pl.el);pl.el.occ.style.transform='translateX(-120%)';pl.el.fl.style.opacity=0;pl.el.cells.forEach(c=>c.style.opacity=0);trFn[pl.id](p,pl.el)}
+}
+players.forEach(pl=>drawPlayer(pl,reduce?.6:0));
+if(!reduce){const t0=performance.now();(function loop(now){const t=(now-t0)/1000;
+  players.forEach(pl=>{if(pl.vis)drawPlayer(pl,(t%pl.dur)/pl.dur)});requestAnimationFrame(loop)})(t0)}
+
+/* ---------- 画风 ---------- */
+let DATA=null,PROMPTS=null,shown=60,filter={q:'',series:'ALL',img:false,sel:false};
+fetch('data/styles.json').then(r=>r.json()).then(d=>{DATA=d;buildSeries();renderGrid();renderList()});
+function buildSeries(){
+  const box=$('#series');const all=[{id:'ALL',name:'全部',count:DATA.entries.length},...DATA.series];
+  box.innerHTML=all.map(s=>`<button class="chip" data-s="${s.id}" aria-pressed="${s.id===filter.series}">${s.name}<span class="c">${s.count}</span></button>`).join('');
+  box.onclick=ev=>{const b=ev.target.closest('.chip');if(!b)return;filter.series=b.dataset.s;shown=60;box.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',c===b));renderGrid()};
+}
+function matches(e){
+  if(filter.series!=='ALL'&&e.series!==filter.series)return false;
+  if(filter.img&&!e.img)return false;
+  if(filter.sel&&!state.styles[e.id])return false;
+  const q=filter.q.trim().toLowerCase();if(!q)return true;
+  return [e.id,e.name,e.category,e.description,e.fit,(e.tags||[]).join(' ')].join(' ').toLowerCase().includes(q);
+}
+function renderGrid(){
+  const list=DATA.entries.filter(matches);
+  $('#count').textContent=`显示 ${Math.min(shown,list.length)} / ${list.length} 个`;
+  $('#grid').innerHTML=list.slice(0,shown).map(e=>`<article class="card${state.styles[e.id]?' sel':''}" data-id="${e.id}" tabindex="0">
+    <div class="thumb">${e.img?`<img loading="lazy" src="${e.img}" alt="${e.id} ${e.name} 参考图">`:`<div class="noimg"><b>仅文字</b>${e.description||''}</div>`}</div>
+    <div class="meta"><div class="idrow"><span class="id">${e.id}</span><span class="nm">${e.name}</span></div><div class="ds">${e.fit?'适合：'+e.fit:(e.description||'')}</div></div>
+    <button class="pick" aria-label="选中 ${e.id}">${state.styles[e.id]?'✓':'＋'}</button></article>`).join('');
+  $('#more').hidden=list.length<=shown;
+}
+$('#more').onclick=()=>{shown+=60;renderGrid()};
+$('#q').oninput=ev=>{filter.q=ev.target.value;shown=60;renderGrid()};
+$('#onlyImg').onclick=ev=>{filter.img=!filter.img;ev.currentTarget.setAttribute('aria-pressed',filter.img);renderGrid()};
+$('#onlySel').onclick=ev=>{filter.sel=!filter.sel;ev.currentTarget.setAttribute('aria-pressed',filter.sel);renderGrid()};
+$('#grid').onclick=ev=>{const c=ev.target.closest('.card');if(!c)return;
+  if(ev.target.closest('.pick')){toggleStyle(c.dataset.id);return}openModal(c.dataset.id)};
+$('#grid').onkeydown=ev=>{if(ev.key==='Enter'){const c=ev.target.closest('.card');if(c)openModal(c.dataset.id)}};
+function toggleStyle(id){if(state.styles[id])delete state.styles[id];else state.styles[id]=Object.keys(state.styles).length?'辅助':'主画风';save();renderGrid();if(curId===id)syncModalBtn()}
+function toggleMotion(kind,id){const arr=kind==='cam'?state.camera:state.trans;const i=arr.indexOf(id);if(i>=0)arr.splice(i,1);else arr.push(id);save()}
+
+/* 弹窗 */
+let curId=null;
+function byId(id){return DATA.entries.find(e=>e.id===id)}
+function openModal(id){
+  const e=byId(id);curId=id;
+  $('#mId').textContent=e.id;$('#mSeries').textContent=(DATA.series.find(s=>s.id===e.series)||{}).name||'';
+  $('#mTitle').textContent=e.name;$('#mDesc').textContent=e.description||'';$('#mFit').textContent=e.fit?'适合：'+e.fit:'';
+  $('#mTags').innerHTML=(e.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('');
+  $('#mImg').innerHTML=e.img?`<img src="${e.img}" alt="${e.id} 参考图">`:'<div class="noimg"><b>仅文字</b>这个风格没有参考图，以提示词描述为准</div>';
+  syncModalBtn();$('#modal').classList.add('open');$('#mClose').focus();
+  $('#mPrompt').textContent='载入提示词…';
+  (PROMPTS?Promise.resolve(PROMPTS):fetch('data/prompts.json').then(r=>r.json()).then(p=>PROMPTS=p))
+    .then(p=>{if(curId===id)$('#mPrompt').textContent=p[id]||'（没有找到提示词文件）'}).catch(()=>{$('#mPrompt').textContent='提示词载入失败，刷新页面再试'});
+}
+function syncModalBtn(){$('#mPick').textContent=state.styles[curId]?'✓ 已选，点击取消':'＋ 选这个风格'}
+$('#mPick').onclick=()=>toggleStyle(curId);
+$('#mCopy').onclick=async()=>{try{await navigator.clipboard.writeText($('#mPrompt').textContent);toast('提示词已复制')}catch(e){toast('浏览器不让复制，请手动选中提示词复制')}};
+function closeModal(){$('#modal').classList.remove('open');curId=null}
+$('#mClose').onclick=closeModal;$('#modal').onclick=ev=>{if(ev.target.id==='modal')closeModal()};
+document.addEventListener('keydown',ev=>{if(ev.key==='Escape')closeModal()});
+
+/* 标签页 */
+document.querySelector('.tabs').onclick=ev=>{const b=ev.target.closest('.tab');if(!b)return;
+  document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t===b));
+  ['styles','camera','trans'].forEach(k=>$('#p-'+k).hidden=k!==b.dataset.tab);
+  try{history.replaceState(null,'','#'+b.dataset.tab)}catch(e){}};
+const h=location.hash.slice(1);if(['camera','trans'].includes(h))document.querySelector(`[data-tab="${h}"]`).click();
+
+/* ---------- 清单 ---------- */
+function renderList(){
+  const sIds=Object.keys(state.styles);
+  $('#cS').textContent=sIds.length;$('#cC').textContent=state.camera.length;$('#cT').textContent=state.trans.length;
+  $('#lS').innerHTML=sIds.length?sIds.map(id=>{const e=DATA&&byId(id);return`<div class="item"><span class="id">${id}</span><span class="t">${e?e.name:''}</span>
+    <select data-id="${id}" aria-label="${id} 的用途">${['主画风','辅助','版式','只参考配色'].map(o=>`<option${state.styles[id]===o?' selected':''}>${o}</option>`).join('')}</select>
+    <button class="x" data-rs="${id}" aria-label="移除 ${id}">×</button></div>`}).join(''):'<p class="empty">在「画风」里点 ＋ 添加</p>';
+  const li=(arr,src,k)=>arr.length?arr.map(id=>{const m=src.find(x=>x.id===id);return`<div class="item"><span class="t">${m.n} <span class="sub">${m.en}</span></span><button class="x" data-r${k}="${id}" aria-label="移除">×</button></div>`}).join(''):`<p class="empty">在「${k==='c'?'镜头运动':'转场'}」里点 ＋ 添加</p>`;
+  $('#lC').innerHTML=li(state.camera,CAM,'c');$('#lT').innerHTML=li(state.trans,TR,'t');
+  players.forEach(p=>{const on=(p.kind==='cam'?state.camera:state.trans).includes(p.id);p.card.classList.toggle('sel',on);p.card.querySelector('.pick').textContent=on?'✓':'＋'});
+  if($('#notes').value!==state.notes)$('#notes').value=state.notes;
+  $('#out').textContent=buildText();
+}
+$('.asideBody').addEventListener('click',ev=>{const t=ev.target;
+  if(t.dataset.rs){delete state.styles[t.dataset.rs];save();DATA&&renderGrid()}
+  if(t.dataset.rc){state.camera=state.camera.filter(x=>x!==t.dataset.rc);save()}
+  if(t.dataset.rt){state.trans=state.trans.filter(x=>x!==t.dataset.rt);save()}});
+$('.asideBody').addEventListener('change',ev=>{if(ev.target.tagName==='SELECT'){state.styles[ev.target.dataset.id]=ev.target.value;save()}});
+$('#notes').oninput=ev=>{state.notes=ev.target.value;try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}$('#out').textContent=buildText()};
+function buildText(){
+  const L=['用 jeet-video-style 做视频，按下面的选择：'];
+  const s=Object.entries(state.styles);
+  if(s.length){L.push('画风（code-animation-prompts）：');s.forEach(([id,r])=>{const e=DATA&&byId(id);L.push(`- ${id} ${e?e.name:''}（${r}）`)})}
+  if(state.camera.length){L.push('镜头运动（fy-code-animation/recipes/camera-moves.md）：');state.camera.forEach(id=>{const m=CAM.find(x=>x.id===id);L.push(`- ${m.n} ${m.en}`)})}
+  if(state.trans.length){L.push('转场（fy-code-animation/recipes/transitions.md）：');state.trans.forEach(id=>{const m=TR.find(x=>x.id===id);L.push(`- ${m.n} ${m.en}`)})}
+  if(state.notes.trim())L.push('说明：'+state.notes.trim());
+  if(L.length===1)L.push('（还没选）');
+  return L.join('\n');
+}
+$('#copy').onclick=async()=>{try{await navigator.clipboard.writeText(buildText());toast('已复制，粘贴到和 Claude 的对话里')}catch(e){toast('浏览器不让复制，请手动选中上面的文字复制')}};
+$('#clear').onclick=()=>{state={styles:{},camera:[],trans:[],notes:''};save();DATA&&renderGrid()};
+let tt;function toast(m){$('#toast').textContent=m;clearTimeout(tt);tt=setTimeout(()=>$('#toast').textContent='',2600)}
+renderList();
+</script>
+</body>
+</html>
